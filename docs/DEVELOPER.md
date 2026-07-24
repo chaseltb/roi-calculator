@@ -66,6 +66,77 @@ Configure page for their session; there is no server-side persistence layer.
 1. Add a new JSON file to `configs/` following the shape above.
 2. Add a row for it to the table in [`README.md`](../README.md).
 3. Test it: `ROI_CONFIG_FILE=configs/your_file.json python app.py`.
+4. It's now also loadable per-request via `?config=<filename-without-.json>`
+   (see [Embedding](#embedding) below) — no server restart needed.
+
+## Embedding
+
+Two URL query params control embed behavior, read in `render_route` /
+`seed_config_from_query`:
+
+- `embed=1` — `home_layout(embed=True)` skips rendering `nav_bar` and tightens
+  page padding, so the app reads as a widget rather than a standalone site.
+- `config=<slug>` — resolved by `load_config_by_slug(slug)`, which maps the
+  slug to `configs/<slug>.json`. This is deliberately narrow: no path
+  separators or `..` are allowed, and the resolved path is checked to still be
+  inside `CONFIGS_DIR`, so it can't be used to read arbitrary files off disk.
+  An invalid/missing slug silently falls back to whatever's already in
+  `config-store` (or `DEFAULT_CONFIG`) rather than erroring — this callback
+  uses `Output("config-store", "data", allow_duplicate=True)` since
+  `manage_config` (the Configure-page save/reset callback) also targets that
+  store; both are marked `prevent_initial_call` so the two never race on load.
+
+### Framing / CSP
+
+By default Flask/Dash doesn't send `X-Frame-Options`, but some proxies or
+`flask-talisman`-style setups do — `_allow_embedding` (an `after_request` hook
+in `app.py`) explicitly strips `X-Frame-Options` and sets
+`Content-Security-Policy: frame-ancestors <value>` on every response. Control
+the allowed embedding origins with `ROI_FRAME_ANCESTORS` (space-separated
+origins); it defaults to `*` (embeddable anywhere), which is fine for demos
+but should be locked down per-client in production, e.g.:
+
+```bash
+ROI_FRAME_ANCESTORS="https://etherealabs.com https://client-site.com" python app.py
+```
+
+### Auto-resizing iframes
+
+A small inline script in `index_string` detects it's running inside an
+`<iframe>` (`window.self !== window.top`), watches `document.body` with a
+`MutationObserver`, and `postMessage`s `{type: "roi-calculator:height", height}`
+to the parent whenever the rendered height changes. Host pages can listen for
+it to avoid a fixed iframe height:
+
+```html
+<script>
+  window.addEventListener("message", (e) => {
+    if (e.data?.type === "roi-calculator:height") {
+      document.getElementById("roi-iframe").style.height = e.data.height + "px";
+    }
+  });
+</script>
+```
+
+If you don't wire this up, embedders should just set a reasonably tall fixed
+`height` on the iframe (~900px covers the desktop bento layout).
+
+## Input validation
+
+`manage_config` (the Configure-page save handler) rejects and reports, without
+touching the stored config, on:
+
+- Missing product name or timeline.
+- Non-numeric cost/limit/timeline fields.
+- Timeline outside `1..120` months.
+- Negative costs.
+- Tier 1 limit `<= 0`, or Tier 2 limit `<=` Tier 1 limit (tiers must be
+  strictly increasing so the "first tier whose limit is >= units" matching in
+  `update_calculator` behaves sensibly).
+
+There's intentionally no validation on the calculator sliders themselves —
+`dcc.Slider` `min`/`max`/`step` already constrain those inputs at the widget
+level.
 
 ## Calculation logic (`update_calculator`)
 
@@ -90,12 +161,37 @@ first month `cash_flow >= 0` as break-even.
 |---|---|---|
 | `ROI_CONFIG_FILE` | Path to a JSON config file to seed initial pricing/timeline | unset → `DEFAULT_CONFIG` |
 | `ROI_PORT` | Port to serve on | `4006` |
+| `ROI_FRAME_ANCESTORS` | Space-separated origins allowed to `<iframe>`-embed the app (`Content-Security-Policy: frame-ancestors`) | `*` |
 
 ## Local dev
 
 ```bash
-pip install dash plotly
+pip install -r requirements.txt
 python app.py          # debug=True, hot reload enabled
 ```
 
 There is no test suite or build step; this is a single-file Dash app.
+
+## Deployment
+
+`app.py` exposes the underlying Flask app as a module-level `server` variable
+(`server = app.server`), so it can run under any WSGI server instead of Dash's
+built-in dev server:
+
+```bash
+gunicorn --bind 0.0.0.0:4006 --workers 2 app:server
+```
+
+A [`Dockerfile`](../Dockerfile) is included and does exactly this. Build/run:
+
+```bash
+docker build -t roi-calculator .
+docker run -p 4006:4006 \
+  -e ROI_CONFIG_FILE=configs/etherea_default.json \
+  -e ROI_FRAME_ANCESTORS="https://etherealabs.com" \
+  roi-calculator
+```
+
+`debug=True` in the `__main__` block only applies to `python app.py` directly
+— gunicorn/Docker never hit that code path, so hot reload and the Dash
+debug/error overlay are automatically off in that deployment.

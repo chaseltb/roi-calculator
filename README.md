@@ -40,16 +40,53 @@ session, or **Reset to Defaults** to restore the built-in defaults. Changes
 made here only last for your current session/tab — they are not written back
 to disk. To make a configuration permanent, see the developer docs.
 
+## Embedding on another site
+
+The calculator can be dropped into any client site as an `<iframe>`:
+
+```html
+<iframe
+  src="https://roi.etherealabs.com/?config=marketing_agency&embed=1"
+  style="width: 100%; height: 900px; border: none;"
+  title="ROI Calculator">
+</iframe>
+```
+
+- `embed=1` hides the top navigation bar so it looks native to the host page.
+- `config=<slug>` loads one of the files in [`configs/`](configs/) by name
+  (e.g. `configs/marketing_agency.json` → `marketing_agency`) instead of the
+  server's default pricing.
+- The page auto-reports its height to the parent window, so most host pages
+  won't need to guess an iframe height — see
+  [`docs/DEVELOPER.md`](docs/DEVELOPER.md#embedding) if you want to wire up
+  auto-resize on your side too.
+
 ## Running it yourself
 
 Requires Python 3.9+.
 
 ```bash
-pip install dash plotly
+pip install -r requirements.txt
 python app.py
 ```
 
 Then open http://localhost:4006 in your browser.
+
+### Production deployment
+
+For anything beyond local testing, run behind a real WSGI server instead of
+`python app.py`'s dev server:
+
+```bash
+gunicorn --bind 0.0.0.0:4006 --workers 2 app:server
+```
+
+or build the included Docker image:
+
+```bash
+docker build -t roi-calculator .
+docker run -p 4006:4006 -e ROI_FRAME_ANCESTORS="https://etherealabs.com" roi-calculator
+```
 
 ### Loading a demo configuration
 

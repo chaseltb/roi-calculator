@@ -74,6 +74,7 @@ app = dash.Dash(
     title="Etherea Labs — ROI Calculator",
     meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
 )
+server = app.server  # exposed for WSGI servers, e.g. `gunicorn app:server`
 
 app.layout = html.Div(
     style={"background": BG_PAGE, "minHeight": "100vh", "margin": "0",
