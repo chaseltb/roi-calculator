@@ -1,3 +1,7 @@
+import json
+import os
+from urllib.parse import parse_qs
+
 import dash
 from dash import dcc, html, Input, Output, State, callback, ctx
 import plotly.graph_objects as go
@@ -28,6 +32,42 @@ DEFAULT_CONFIG = {
     ]
 }
 
+CONFIGS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "configs")
+
+
+def load_config(path):
+    """Load a settings JSON file and merge it over DEFAULT_CONFIG.
+
+    Missing keys fall back to defaults so partial config files still work.
+    """
+    with open(path, "r") as f:
+        overrides = json.load(f)
+    cfg = {**DEFAULT_CONFIG, **overrides}
+    cfg["tiers"] = overrides.get("tiers", DEFAULT_CONFIG["tiers"])
+    return cfg
+
+
+def load_config_by_slug(slug):
+    """Resolve a `?config=slug` query param to configs/<slug>.json.
+
+    Only bare filenames (no path separators / traversal) are accepted, and the
+    resolved path must stay inside CONFIGS_DIR. Returns None if the slug is
+    invalid or the file doesn't exist, so callers can fall back safely.
+    """
+    if not slug or "/" in slug or "\\" in slug or ".." in slug:
+        return None
+    path = os.path.join(CONFIGS_DIR, f"{slug}.json")
+    if not os.path.abspath(path).startswith(CONFIGS_DIR) or not os.path.isfile(path):
+        return None
+    try:
+        return load_config(path)
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+CONFIG_FILE = os.environ.get("ROI_CONFIG_FILE")
+INITIAL_CONFIG = load_config(CONFIG_FILE) if CONFIG_FILE else DEFAULT_CONFIG
+
 app = dash.Dash(
     __name__,
     suppress_callback_exceptions=True,
@@ -41,7 +81,7 @@ app.layout = html.Div(
            "color": WHITE},
     children=[
         dcc.Location(id="url", refresh=False),
-        dcc.Store(id="config-store", data=DEFAULT_CONFIG, storage_type="session"),
+        dcc.Store(id="config-store", data=INITIAL_CONFIG, storage_type="session"),
         html.Div(id="page-content")
     ]
 )
@@ -65,8 +105,18 @@ def slider_row(label, slider_id, val_id, min_v, max_v, step_v, default_v):
         ]
     )
 
+def parse_query(search):
+    """Parse a dcc.Location `search` string (e.g. "?config=foo&embed=1") into a dict."""
+    if not search:
+        return {}
+    qs = parse_qs(search.lstrip("?"))
+    return {k: v[0] for k, v in qs.items()}
+
+
 # ── Nav Bar ───────────────────────────────────────────────────────────────────
-def nav_bar(current_path):
+def nav_bar(current_path, embed=False):
+    if embed:
+        return None
     is_config = current_path == "/config"
     return html.Div(
         style={"display": "flex", "justifyContent": "space-between", "alignItems": "center",
@@ -99,7 +149,7 @@ def nav_bar(current_path):
     )
 
 # ── Home Layout ───────────────────────────────────────────────────────────────
-def home_layout():
+def home_layout(embed=False):
     card = lambda extra={}: {
         "background": BG_CARD,
         "border": f"1px solid {BORDER}",
@@ -109,10 +159,11 @@ def home_layout():
 
     return html.Div(
         children=[
-            nav_bar("/"),
+            nav_bar("/", embed=embed),
             # Bento grid container
             html.Div(
-                style={"padding": "1.5rem 1.75rem 2rem", "maxWidth": "1280px",
+                style={"padding": "0.75rem" if embed else "1.5rem 1.75rem 2rem",
+                       "maxWidth": "1280px",
                        "margin": "0 auto"},
                 children=[
                     # Page label
@@ -415,13 +466,36 @@ def config_layout():
     ])
 
 # ── Routing ───────────────────────────────────────────────────────────────────
-@callback(Output("page-content", "children"), Input("url", "pathname"))
-def render_route(pathname):
-    return config_layout() if pathname == "/config" else home_layout()
+@callback(
+    Output("page-content", "children"),
+    Input("url", "pathname"), Input("url", "search")
+)
+def render_route(pathname, search):
+    query = parse_query(search)
+    embed = query.get("embed") in ("1", "true")
+    if pathname == "/config":
+        return config_layout()
+    return home_layout(embed=embed)
+
+
+# Seeds config-store from `?config=<slug>` on first load, e.g. for embeds like
+# <iframe src="https://.../?config=marketing_agency&embed=1">. Falls back to
+# whatever is already in the session store (or DEFAULT_CONFIG) if the slug is
+# missing/invalid, so this never clobbers a config saved via the /config page.
+@callback(
+    Output("config-store", "data", allow_duplicate=True),
+    Input("url", "search"),
+    State("config-store", "data"),
+    prevent_initial_call="initial_duplicate"
+)
+def seed_config_from_query(search, store):
+    query = parse_query(search)
+    cfg = load_config_by_slug(query.get("config"))
+    return cfg if cfg is not None else (store or DEFAULT_CONFIG)
 
 # ── Config Callbacks ──────────────────────────────────────────────────────────
 @callback(
-    Output("config-store", "data"),
+    Output("config-store", "data", allow_duplicate=True),
     Output("cfg-status-message", "children"),
     Output("cfg-status-message", "style"),
     Input("btn-save", "n_clicks"), Input("btn-reset", "n_clicks"),
@@ -429,7 +503,8 @@ def render_route(pathname):
     State("cfg-t1-name", "value"), State("cfg-t1-cost", "value"), State("cfg-t1-limit", "value"),
     State("cfg-t2-name", "value"), State("cfg-t2-cost", "value"), State("cfg-t2-limit", "value"),
     State("cfg-t3-name", "value"), State("cfg-t3-cost", "value"),
-    State("config-store", "data")
+    State("config-store", "data"),
+    prevent_initial_call=True
 )
 def manage_config(save_n, reset_n, name, timeline,
                   t1n, t1c, t1l, t2n, t2c, t2l, t3n, t3c, store):
@@ -440,13 +515,27 @@ def manage_config(save_n, reset_n, name, timeline,
     if triggered == "btn-save":
         if not name or timeline is None:
             return store, "Fill in all fields.", {**base_style, "color": RED_MAIN}
+        try:
+            timeline_val = int(timeline)
+            t1_cost, t2_cost, t3_cost = float(t1c or 0), float(t2c or 0), float(t3c or 0)
+            t1_limit, t2_limit = int(t1l or 100), int(t2l or 500)
+        except (TypeError, ValueError):
+            return store, "Costs, limits, and timeline must be numbers.", {**base_style, "color": RED_MAIN}
+
+        if not (1 <= timeline_val <= 120):
+            return store, "Timeline must be between 1 and 120 months.", {**base_style, "color": RED_MAIN}
+        if min(t1_cost, t2_cost, t3_cost) < 0:
+            return store, "Costs can't be negative.", {**base_style, "color": RED_MAIN}
+        if t1_limit <= 0 or t2_limit <= t1_limit:
+            return store, "Tier 2's volume limit must exceed Tier 1's.", {**base_style, "color": RED_MAIN}
+
         cfg = {
             "product_name": name,
-            "timeline_months": int(timeline),
+            "timeline_months": timeline_val,
             "tiers": [
-                {"name": t1n or "Starter Package",    "cost": float(t1c or 0), "limit": int(t1l or 100)},
-                {"name": t2n or "Growth Package",     "cost": float(t2c or 0), "limit": int(t2l or 500)},
-                {"name": t3n or "Enterprise Package", "cost": float(t3c or 0), "limit": 999999}
+                {"name": t1n or "Starter Package",    "cost": t1_cost, "limit": t1_limit},
+                {"name": t2n or "Growth Package",     "cost": t2_cost, "limit": t2_limit},
+                {"name": t3n or "Enterprise Package", "cost": t3_cost, "limit": 999999}
             ]
         }
         return cfg, "Saved.", {**base_style, "color": GREEN}
@@ -646,8 +735,39 @@ app.index_string = f"""<!DOCTYPE html>
     <body>
         {{%app_entry%}}
         <footer>{{%config%}}{{%scripts%}}{{%renderer%}}</footer>
+        <script>
+            // Auto-report content height to a parent window when embedded in an
+            // <iframe>, so the host page can size the iframe without scrollbars.
+            (function () {{
+                if (window.self === window.top) return;
+                var lastHeight = 0;
+                function reportHeight() {{
+                    var height = document.documentElement.scrollHeight;
+                    if (height !== lastHeight) {{
+                        lastHeight = height;
+                        window.parent.postMessage({{type: "roi-calculator:height", height: height}}, "*");
+                    }}
+                }}
+                new MutationObserver(reportHeight).observe(document.body, {{
+                    childList: true, subtree: true, attributes: true
+                }});
+                window.addEventListener("resize", reportHeight);
+                setTimeout(reportHeight, 300);
+            }})();
+        </script>
     </body>
 </html>"""
 
+# Allow this app to be framed by other sites (needed to embed it as an
+# <iframe>). Restrict via ROI_FRAME_ANCESTORS in production, e.g.
+# "https://etherealabs.com https://client-site.com" — defaults to "*" for demos.
+@app.server.after_request
+def _allow_embedding(response):
+    response.headers.pop("X-Frame-Options", None)
+    ancestors = os.environ.get("ROI_FRAME_ANCESTORS", "*")
+    response.headers["Content-Security-Policy"] = f"frame-ancestors {ancestors}"
+    return response
+
+
 if __name__ == "__main__":
-    app.run(debug=True, port=4006)
+    app.run(debug=True, port=int(os.environ.get("ROI_PORT", 4006)))
