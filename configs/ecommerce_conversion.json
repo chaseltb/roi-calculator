@@ -1,0 +1,9 @@
+{
+  "product_name": "E-Commerce Conversion Audit",
+  "timeline_months": 3,
+  "tiers": [
+    { "name": "Storefront Audit",   "cost": 450,  "limit": 75 },
+    { "name": "Full Funnel Rebuild","cost": 2200, "limit": 400 },
+    { "name": "Managed Optimization","cost": 6000, "limit": 999999 }
+  ]
+}

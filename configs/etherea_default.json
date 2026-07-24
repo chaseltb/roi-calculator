@@ -1,0 +1,9 @@
+{
+  "product_name": "Etherea Website Platform",
+  "timeline_months": 12,
+  "tiers": [
+    { "name": "Starter Package",    "cost": 809,  "limit": 100 },
+    { "name": "Growth Package",     "cost": 1237, "limit": 500 },
+    { "name": "Enterprise Package", "cost": 5000, "limit": 999999 }
+  ]
+}
