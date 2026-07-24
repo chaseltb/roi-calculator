@@ -1,0 +1,9 @@
+{
+  "product_name": "Growth Marketing Retainer",
+  "timeline_months": 6,
+  "tiers": [
+    { "name": "Basic Retainer",    "cost": 1500, "limit": 50 },
+    { "name": "Pro Retainer",      "cost": 3500, "limit": 250 },
+    { "name": "Agency Partnership","cost": 9000, "limit": 999999 }
+  ]
+}

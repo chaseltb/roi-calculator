@@ -1,0 +1,9 @@
+{
+  "product_name": "SaaS Onboarding Automation",
+  "timeline_months": 12,
+  "tiers": [
+    { "name": "Solo Plan",       "cost": 299,  "limit": 25 },
+    { "name": "Team Plan",       "cost": 899,  "limit": 200 },
+    { "name": "Enterprise Plan", "cost": 4200, "limit": 999999 }
+  ]
+}
