@@ -44,14 +44,14 @@ DEFAULT_CONFIG = {
     },
     # Slider label overrides — any key omitted falls back to the value below
     "sliders": {
-        "units_label":      "Current Sales Per Year",
+        "units_label":      "",
         "profit_label":     "Profit Per Sale",
         "conversion_label": "Conversion Boost",
         "traffic_label":    "SEO Traffic Growth",
     },
     # When True the units slider represents *additional* sales directly,
     # bypassing the conversion/traffic multiplier step.
-    "additional_sales_mode": False,
+    "additional_sales_mode": True,
 }
 
 

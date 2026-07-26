@@ -110,25 +110,27 @@ def home_layout(embed=False):
                                         ]
                                     ),
 
-                                    # Divider
-                                    html.Hr(style={"border": "none", "borderTop": f"1px solid {BORDER}",
-                                                   "margin": "1.75rem 0"}),
-
-                                    # Section: Projected Gains
-                                    html.Div("Projected Gains",
-                                             style={"fontSize": "10px", "fontWeight": "700",
-                                                    "letterSpacing": "0.12em", "textTransform": "uppercase",
-                                                    "color": TEXT_MUTE, "marginBottom": "1.5rem"}),
-
+                                    # Section: Projected Gains (hidden in Additional Sales Mode)
                                     html.Div(
-                                        style={"display": "flex", "flexDirection": "column", "gap": "1.5rem"},
+                                        id="projected-gains-container",
                                         children=[
-                                            slider_row("Conversion Boost", "conversion-slider",
-                                                       "conversion-slider-val", 5, 100, 5, 25,
-                                                       label_id="conversion-label"),
-                                            slider_row("SEO Traffic Growth", "traffic-slider",
-                                                       "traffic-slider-val", 0, 100, 5, 20,
-                                                       label_id="traffic-label"),
+                                            html.Hr(style={"border": "none", "borderTop": f"1px solid {BORDER}",
+                                                           "margin": "1.75rem 0"}),
+                                            html.Div("Projected Gains",
+                                                     style={"fontSize": "10px", "fontWeight": "700",
+                                                            "letterSpacing": "0.12em", "textTransform": "uppercase",
+                                                            "color": TEXT_MUTE, "marginBottom": "1.5rem"}),
+                                            html.Div(
+                                                style={"display": "flex", "flexDirection": "column", "gap": "1.5rem"},
+                                                children=[
+                                                    slider_row("Conversion Boost", "conversion-slider",
+                                                               "conversion-slider-val", 5, 100, 5, 25,
+                                                               label_id="conversion-label"),
+                                                    slider_row("SEO Traffic Growth", "traffic-slider",
+                                                               "traffic-slider-val", 0, 100, 5, 20,
+                                                               label_id="traffic-label"),
+                                                ]
+                                            ),
                                         ]
                                     ),
 
