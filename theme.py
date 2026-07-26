@@ -41,7 +41,17 @@ DEFAULT_CONFIG = {
         "text_mute": "#7a4848",   # muted label
         "green":     "#4ade80",   # bright accent for ROI
         "green_dim": "rgba(74, 222, 128, 0.08)"
-    }
+    },
+    # Slider label overrides — any key omitted falls back to the value below
+    "sliders": {
+        "units_label":      "Current Sales Per Year",
+        "profit_label":     "Profit Per Sale",
+        "conversion_label": "Conversion Boost",
+        "traffic_label":    "SEO Traffic Growth",
+    },
+    # When True the units slider represents *additional* sales directly,
+    # bypassing the conversion/traffic multiplier step.
+    "additional_sales_mode": False,
 }
 
 
@@ -79,6 +89,20 @@ def _merge_brand(overrides_raw):
         # brand values must be non-empty strings
         if isinstance(candidate, str) and candidate.strip():
             merged[key] = candidate
+        else:
+            merged[key] = default_val
+    return merged
+
+
+def _merge_sliders(overrides_raw):
+    """Key-by-key merge of slider labels, falling back per invalid entry."""
+    defaults = DEFAULT_CONFIG["sliders"]
+    raw = overrides_raw if isinstance(overrides_raw, dict) else {}
+    merged = {}
+    for key, default_val in defaults.items():
+        candidate = raw.get(key, default_val)
+        if isinstance(candidate, str) and candidate.strip():
+            merged[key] = candidate.strip()
         else:
             merged[key] = default_val
     return merged
@@ -155,12 +179,19 @@ def load_config(path):
     except (TypeError, ValueError):
         timeline = DEFAULT_CONFIG["timeline_months"]
 
+    # additional_sales_mode must be an explicit boolean
+    asm = overrides.get("additional_sales_mode", DEFAULT_CONFIG["additional_sales_mode"])
+    if not isinstance(asm, bool):
+        asm = DEFAULT_CONFIG["additional_sales_mode"]
+
     return {
-        "product_name":    product_name,
-        "timeline_months": timeline,
-        "tiers":           _merge_tiers(overrides.get("tiers")),
-        "brand":           _merge_brand(overrides.get("brand")),
-        "colors":          _merge_colors(overrides.get("colors")),
+        "product_name":         product_name,
+        "timeline_months":      timeline,
+        "tiers":                _merge_tiers(overrides.get("tiers")),
+        "brand":                _merge_brand(overrides.get("brand")),
+        "colors":               _merge_colors(overrides.get("colors")),
+        "sliders":              _merge_sliders(overrides.get("sliders")),
+        "additional_sales_mode": asm,
     }
 
 
@@ -197,15 +228,21 @@ BRAND_SITE     = INITIAL_CONFIG["brand"]["site"]
 
 # ── Reusable UI Helpers ───────────────────────────────────────────────────────
 
-def slider_row(label, slider_id, val_id, min_v, max_v, step_v, default_v):
+def slider_row(label, slider_id, val_id, min_v, max_v, step_v, default_v, label_id=None):
+    """Render a labelled slider row.
+
+    Pass *label_id* to make the label span reactive (updatable via callback).
+    """
+    span_extra = {"id": label_id} if label_id else {}
     return html.Div(
         style={"display": "flex", "flexDirection": "column", "gap": "10px"},
         children=[
             html.Div(
                 style={"display": "flex", "justifyContent": "space-between", "alignItems": "baseline"},
                 children=[
-                    html.Span(label, style={"fontSize": "12px", "fontWeight": "600", "letterSpacing": "0.04em",
-                                            "color": TEXT_MID, "textTransform": "uppercase"}),
+                    html.Span(label, **span_extra,
+                              style={"fontSize": "12px", "fontWeight": "600", "letterSpacing": "0.04em",
+                                     "color": TEXT_MID, "textTransform": "uppercase"}),
                     html.Span(id=val_id, style={"fontSize": "16px", "fontWeight": "800", "color": WHITE})
                 ]
             ),

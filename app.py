@@ -103,11 +103,15 @@ def seed_config_from_query(search, store):
     State("cfg-t1-name", "value"), State("cfg-t1-cost", "value"), State("cfg-t1-limit", "value"),
     State("cfg-t2-name", "value"), State("cfg-t2-cost", "value"), State("cfg-t2-limit", "value"),
     State("cfg-t3-name", "value"), State("cfg-t3-cost", "value"),
+    State("cfg-units-label", "value"), State("cfg-profit-label", "value"),
+    State("cfg-conversion-label", "value"), State("cfg-traffic-label", "value"),
+    State("cfg-additional-sales-mode", "value"),
     State("config-store", "data"),
     prevent_initial_call=True
 )
 def manage_config(save_n, reset_n, name, timeline,
-                  t1n, t1c, t1l, t2n, t2c, t2l, t3n, t3c, store):
+                  t1n, t1c, t1l, t2n, t2c, t2l, t3n, t3c,
+                  u_lbl, p_lbl, c_lbl, tr_lbl, asm_val, store):
     base_style = {"textAlign": "right", "fontSize": "12px", "fontWeight": "600"}
     triggered = ctx.triggered_id
     if triggered == "btn-reset":
@@ -129,6 +133,9 @@ def manage_config(save_n, reset_n, name, timeline,
         if t1_limit <= 0 or t2_limit <= t1_limit:
             return store, "Tier 2's volume limit must exceed Tier 1's.", {**base_style, "color": RED_MAIN}
 
+        existing_brand = (store or DEFAULT_CONFIG).get("brand", DEFAULT_CONFIG["brand"])
+        existing_colors = (store or DEFAULT_CONFIG).get("colors", DEFAULT_CONFIG["colors"])
+
         cfg = {
             "product_name": name,
             "timeline_months": timeline_val,
@@ -136,7 +143,16 @@ def manage_config(save_n, reset_n, name, timeline,
                 {"name": t1n or "Starter Package",    "cost": t1_cost, "limit": t1_limit},
                 {"name": t2n or "Growth Package",     "cost": t2_cost, "limit": t2_limit},
                 {"name": t3n or "Enterprise Package", "cost": t3_cost, "limit": 999999}
-            ]
+            ],
+            "brand": existing_brand,
+            "colors": existing_colors,
+            "sliders": {
+                "units_label":      u_lbl.strip() if u_lbl and u_lbl.strip() else DEFAULT_CONFIG["sliders"]["units_label"],
+                "profit_label":     p_lbl.strip() if p_lbl and p_lbl.strip() else DEFAULT_CONFIG["sliders"]["profit_label"],
+                "conversion_label": c_lbl.strip() if c_lbl and c_lbl.strip() else DEFAULT_CONFIG["sliders"]["conversion_label"],
+                "traffic_label":    tr_lbl.strip() if tr_lbl and tr_lbl.strip() else DEFAULT_CONFIG["sliders"]["traffic_label"],
+            },
+            "additional_sales_mode": "enabled" in (asm_val or [])
         }
         return cfg, "Saved.", {**base_style, "color": GREEN}
     return store or DEFAULT_CONFIG, "", {}
@@ -146,17 +162,27 @@ def manage_config(save_n, reset_n, name, timeline,
     Output("cfg-t1-name", "value"), Output("cfg-t1-cost", "value"), Output("cfg-t1-limit", "value"),
     Output("cfg-t2-name", "value"), Output("cfg-t2-cost", "value"), Output("cfg-t2-limit", "value"),
     Output("cfg-t3-name", "value"), Output("cfg-t3-cost", "value"),
+    Output("cfg-units-label", "value"), Output("cfg-profit-label", "value"),
+    Output("cfg-conversion-label", "value"), Output("cfg-traffic-label", "value"),
+    Output("cfg-additional-sales-mode", "value"),
     Input("url", "pathname"), State("config-store", "data")
 )
 def populate_config(pathname, store):
     if pathname != "/config":
-        return [dash.no_update] * 10
+        return [dash.no_update] * 15
     cfg = store or DEFAULT_CONFIG
-    t = cfg["tiers"]
+    t = cfg.get("tiers", DEFAULT_CONFIG["tiers"])
+    sliders = cfg.get("sliders", DEFAULT_CONFIG["sliders"])
+    asm = ["enabled"] if cfg.get("additional_sales_mode", False) else []
     return (cfg["product_name"], cfg["timeline_months"],
             t[0]["name"], t[0]["cost"], t[0]["limit"],
             t[1]["name"], t[1]["cost"], t[1]["limit"],
-            t[2]["name"], t[2]["cost"])
+            t[2]["name"], t[2]["cost"],
+            sliders.get("units_label", ""),
+            sliders.get("profit_label", ""),
+            sliders.get("conversion_label", ""),
+            sliders.get("traffic_label", ""),
+            asm)
 
 # ── Calculator Engine ─────────────────────────────────────────────────────────
 @callback(
@@ -172,6 +198,10 @@ def populate_config(pathname, store):
     Output("metric-payback", "children"),
     Output("timeline-badge", "children"),
     Output("cumulative-chart", "figure"),
+    Output("units-label", "children"),
+    Output("profit-label", "children"),
+    Output("conversion-label", "children"),
+    Output("traffic-label", "children"),
     Input("units-slider", "value"),
     Input("profit-slider", "value"),
     Input("conversion-slider", "value"),
@@ -181,11 +211,20 @@ def populate_config(pathname, store):
 )
 def update_calculator(units_val, profit_val, conv_val, traffic_val, config_data, pathname):
     if pathname == "/config":
-        return [dash.no_update] * 12
+        return [dash.no_update] * 16
 
     cfg = config_data or DEFAULT_CONFIG
-    timeline = cfg["timeline_months"]
-    tiers = cfg["tiers"]
+    timeline = cfg.get("timeline_months", 12)
+    tiers = cfg.get("tiers", DEFAULT_CONFIG["tiers"])
+    additional_sales_mode = cfg.get("additional_sales_mode", False)
+    sliders_cfg = cfg.get("sliders", DEFAULT_CONFIG["sliders"])
+
+    # Resolve dynamic slider labels based on mode and overrides
+    default_units_lbl = "Additional Sales Per Year" if additional_sales_mode else "Current Sales Per Year"
+    units_lbl = sliders_cfg.get("units_label") or default_units_lbl
+    profit_lbl = sliders_cfg.get("profit_label") or "Profit Per Sale"
+    conv_lbl = sliders_cfg.get("conversion_label") or "Conversion Boost"
+    traffic_lbl = sliders_cfg.get("traffic_label") or "SEO Traffic Growth"
 
     active_tier = tiers[0]
     for tier in tiers:
@@ -194,8 +233,15 @@ def update_calculator(units_val, profit_val, conv_val, traffic_val, config_data,
             break
 
     tier_cost = active_tier["cost"]
-    new_units = round(units_val * (1 + conv_val / 100) * (1 + traffic_val / 100))
-    incremental_annual = (new_units - units_val) * profit_val
+
+    if additional_sales_mode:
+        # Simple logic: units_val is directly the additional sales per year generated!
+        incremental_annual = units_val * profit_val
+    else:
+        # Current sales mode: multiplier logic on current baseline sales
+        new_units = round(units_val * (1 + conv_val / 100) * (1 + traffic_val / 100))
+        incremental_annual = (new_units - units_val) * profit_val
+
     net_benefit = incremental_annual * (timeline / 12) - tier_cost
     roi = (net_benefit / tier_cost * 100) if tier_cost > 0 else 0
 
@@ -282,7 +328,11 @@ def update_calculator(units_val, profit_val, conv_val, traffic_val, config_data,
         f"{round(roi):,}",
         payback_str,
         f"{timeline}-Month View",
-        fig
+        fig,
+        units_lbl,
+        profit_lbl,
+        conv_lbl,
+        traffic_lbl
     )
 
 # ── Index HTML ────────────────────────────────────────────────────────────────
