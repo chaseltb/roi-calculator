@@ -6,6 +6,7 @@ Imported by both app.py and layout.py so neither has to import the other.
 
 import json
 import os
+import re as _re
 
 from dash import dcc, html
 
@@ -44,18 +45,123 @@ DEFAULT_CONFIG = {
 }
 
 
-def load_config(path):
-    """Load a settings JSON file and merge it over DEFAULT_CONFIG.
+_COLOR_RE = _re.compile(
+    r"^(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\)|[a-z]+)$"
+)
 
-    Missing keys fall back to defaults so partial config files still work.
+
+def _is_valid_color(value):
+    """Return True if *value* looks like a CSS colour string."""
+    return isinstance(value, str) and bool(_COLOR_RE.match(value.strip()))
+
+
+def _merge_colors(overrides_raw):
+    """Key-by-key merge of the colours dict, falling back per invalid entry."""
+    defaults = DEFAULT_CONFIG["colors"]
+    raw = overrides_raw if isinstance(overrides_raw, dict) else {}
+    merged = {}
+    for key, default_val in defaults.items():
+        candidate = raw.get(key, default_val)
+        if _is_valid_color(candidate):
+            merged[key] = candidate
+        else:
+            merged[key] = default_val  # bad/missing value → use default
+    return merged
+
+
+def _merge_brand(overrides_raw):
+    """Key-by-key merge of the brand dict, falling back per invalid entry."""
+    defaults = DEFAULT_CONFIG["brand"]
+    raw = overrides_raw if isinstance(overrides_raw, dict) else {}
+    merged = {}
+    for key, default_val in defaults.items():
+        candidate = raw.get(key, default_val)
+        # brand values must be non-empty strings
+        if isinstance(candidate, str) and candidate.strip():
+            merged[key] = candidate
+        else:
+            merged[key] = default_val
+    return merged
+
+
+def _merge_tiers(overrides_raw):
+    """Validate each tier dict; fall back to the matching default tier on error."""
+    defaults = DEFAULT_CONFIG["tiers"]
+    raw = overrides_raw if isinstance(overrides_raw, list) else []
+    if not raw:
+        return defaults
+
+    merged = []
+    for i, default_tier in enumerate(defaults):
+        raw_tier = raw[i] if i < len(raw) else {}
+        if not isinstance(raw_tier, dict):
+            merged.append(default_tier)
+            continue
+
+        name = raw_tier.get("name", default_tier["name"])
+        cost = raw_tier.get("cost", default_tier["cost"])
+        limit = raw_tier.get("limit", default_tier["limit"])
+
+        # name must be a non-empty string
+        if not (isinstance(name, str) and name.strip()):
+            name = default_tier["name"]
+
+        # cost must be a non-negative number
+        try:
+            cost = float(cost)
+            if cost < 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            cost = default_tier["cost"]
+
+        # limit must be a positive integer (last tier may be 999999)
+        try:
+            limit = int(limit)
+            if limit <= 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            limit = default_tier["limit"]
+
+        merged.append({"name": name, "cost": cost, "limit": limit})
+
+    return merged
+
+
+def load_config(path):
+    """Load a JSON config file and deep-merge it over DEFAULT_CONFIG.
+
+    Every field is validated individually; anything missing or invalid
+    silently falls back to the corresponding default — no KeyError possible.
     """
-    with open(path, "r") as f:
-        overrides = json.load(f)
-    cfg = {**DEFAULT_CONFIG, **overrides}
-    cfg["tiers"] = overrides.get("tiers", DEFAULT_CONFIG["tiers"])
-    cfg["brand"] = {**DEFAULT_CONFIG["brand"], **overrides.get("brand", {})}
-    cfg["colors"] = {**DEFAULT_CONFIG["colors"], **overrides.get("colors", {})}
-    return cfg
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            overrides = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return DEFAULT_CONFIG.copy()
+
+    if not isinstance(overrides, dict):
+        return DEFAULT_CONFIG.copy()
+
+    # Top-level scalar fields
+    product_name = overrides.get("product_name", DEFAULT_CONFIG["product_name"])
+    if not (isinstance(product_name, str) and product_name.strip()):
+        product_name = DEFAULT_CONFIG["product_name"]
+
+    timeline = overrides.get("timeline_months", DEFAULT_CONFIG["timeline_months"])
+    try:
+        timeline = int(timeline)
+        if not (1 <= timeline <= 120):
+            raise ValueError
+    except (TypeError, ValueError):
+        timeline = DEFAULT_CONFIG["timeline_months"]
+
+    return {
+        "product_name":    product_name,
+        "timeline_months": timeline,
+        "tiers":           _merge_tiers(overrides.get("tiers")),
+        "brand":           _merge_brand(overrides.get("brand")),
+        "colors":          _merge_colors(overrides.get("colors")),
+    }
 
 
 # ── Resolve initial config at import time ─────────────────────────────────────

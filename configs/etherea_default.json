@@ -5,5 +5,27 @@
     { "name": "Starter Package",    "cost": 809,  "limit": 100 },
     { "name": "Growth Package",     "cost": 1237, "limit": 500 },
     { "name": "Enterprise Package", "cost": 5000, "limit": 999999 }
-  ]
+  ],
+  "brand": {
+    "name":      "Etherea Labs",
+    "app_title": "Etherea Labs ROI Calculator",
+    "initials":  "EL",
+    "site":      "https://etherealabs.co/"
+  },
+  "colors": {
+    "bg_page":   "#070101",
+    "bg_card":   "#130202",
+    "bg_input":  "#0c0101",
+    "border":    "#2e0805",
+    "border_hi": "#5a1208",
+    "red_main":  "#ff3428",
+    "red_sec":   "#be0a00",
+    "red_glow":  "#ff3428",
+    "white":     "#ffffff",
+    "text_hi":   "#ffffff",
+    "text_mid":  "#c98080",
+    "text_mute": "#7a4848",
+    "green":     "#4ade80",
+    "green_dim": "rgba(74, 222, 128, 0.08)"
+  }
 }

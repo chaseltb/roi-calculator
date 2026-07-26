@@ -2,8 +2,30 @@
   "product_name": "E-Commerce Conversion Audit",
   "timeline_months": 3,
   "tiers": [
-    { "name": "Storefront Audit",   "cost": 450,  "limit": 75 },
-    { "name": "Full Funnel Rebuild","cost": 2200, "limit": 400 },
+    { "name": "Storefront Audit",    "cost": 450,  "limit": 75 },
+    { "name": "Full Funnel Rebuild", "cost": 2200, "limit": 400 },
     { "name": "Managed Optimization","cost": 6000, "limit": 999999 }
-  ]
+  ],
+  "brand": {
+    "name":      "ConvertFlow",
+    "app_title": "ConvertFlow ROI Calculator",
+    "initials":  "CF",
+    "site":      "https://convertflow.co/"
+  },
+  "colors": {
+    "bg_page":   "#020804",
+    "bg_card":   "#051208",
+    "bg_input":  "#030a05",
+    "border":    "#0d2e12",
+    "border_hi": "#1a5c24",
+    "red_main":  "#22c55e",
+    "red_sec":   "#16a34a",
+    "red_glow":  "#22c55e",
+    "white":     "#ffffff",
+    "text_hi":   "#ffffff",
+    "text_mid":  "#6fad83",
+    "text_mute": "#3a6647",
+    "green":     "#4ade80",
+    "green_dim": "rgba(74, 222, 128, 0.08)"
+  }
 }

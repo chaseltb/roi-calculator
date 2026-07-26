@@ -5,5 +5,27 @@
     { "name": "Solo Plan",       "cost": 299,  "limit": 25 },
     { "name": "Team Plan",       "cost": 899,  "limit": 200 },
     { "name": "Enterprise Plan", "cost": 4200, "limit": 999999 }
-  ]
+  ],
+  "brand": {
+    "name":      "LaunchPad SaaS",
+    "app_title": "LaunchPad ROI Calculator",
+    "initials":  "LP",
+    "site":      "https://launchpadsaas.co/"
+  },
+  "colors": {
+    "bg_page":   "#040208",
+    "bg_card":   "#090514",
+    "bg_input":  "#060310",
+    "border":    "#1a0f2e",
+    "border_hi": "#361e5c",
+    "red_main":  "#a855f7",
+    "red_sec":   "#7e22ce",
+    "red_glow":  "#a855f7",
+    "white":     "#ffffff",
+    "text_hi":   "#ffffff",
+    "text_mid":  "#9b78cc",
+    "text_mute": "#5a3d80",
+    "green":     "#4ade80",
+    "green_dim": "rgba(74, 222, 128, 0.08)"
+  }
 }
