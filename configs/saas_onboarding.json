@@ -27,5 +27,12 @@
     "text_mute": "#5a3d80",
     "green":     "#4ade80",
     "green_dim": "rgba(74, 222, 128, 0.08)"
-  }
+  },
+  "sliders": {
+    "units_label":      "Additional Subscriptions / Yr",
+    "profit_label":     "Annual Value Per Customer",
+    "conversion_label": "Conversion Boost",
+    "traffic_label":    "SEO Traffic Growth"
+  },
+  "additional_sales_mode": true
 }

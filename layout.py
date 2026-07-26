@@ -102,9 +102,11 @@ def home_layout(embed=False):
                                         style={"display": "flex", "flexDirection": "column", "gap": "1.5rem"},
                                         children=[
                                             slider_row("Sales Per Year", "units-slider",
-                                                       "units-slider-val", 10, 5000, 10, 150),
+                                                       "units-slider-val", 10, 5000, 10, 150,
+                                                       label_id="units-label"),
                                             slider_row("Profit Per Sale", "profit-slider",
-                                                       "profit-slider-val", 10, 5000, 10, 250),
+                                                       "profit-slider-val", 10, 5000, 10, 250,
+                                                       label_id="profit-label"),
                                         ]
                                     ),
 
@@ -122,9 +124,11 @@ def home_layout(embed=False):
                                         style={"display": "flex", "flexDirection": "column", "gap": "1.5rem"},
                                         children=[
                                             slider_row("Conversion Boost", "conversion-slider",
-                                                       "conversion-slider-val", 5, 100, 5, 25),
+                                                       "conversion-slider-val", 5, 100, 5, 25,
+                                                       label_id="conversion-label"),
                                             slider_row("SEO Traffic Growth", "traffic-slider",
-                                                       "traffic-slider-val", 0, 100, 5, 20),
+                                                       "traffic-slider-val", 0, 100, 5, 20,
+                                                       label_id="traffic-label"),
                                         ]
                                     ),
 
@@ -334,6 +338,56 @@ def config_layout():
                             )
                             for i in [1, 2, 3]
                         ],
+                        html.Hr(style={"border": "none", "borderTop": f"1px solid {BORDER}", "margin": "0"}),
+                        html.Div("Slider Labels",
+                                 style={"fontSize": "12px", "fontWeight": "700", "color": WHITE}),
+                        html.Div(
+                            style={"display": "grid", "gridTemplateColumns": "1fr 1fr", "gap": "1.25rem"},
+                            children=[
+                                field("Units Slider Label",
+                                      dcc.Input(id="cfg-units-label", type="text",
+                                                placeholder="Current Sales Per Year", style=input_style)),
+                                field("Profit Slider Label",
+                                      dcc.Input(id="cfg-profit-label", type="text",
+                                                placeholder="Profit Per Sale", style=input_style)),
+                                field("Conversion Slider Label",
+                                      dcc.Input(id="cfg-conversion-label", type="text",
+                                                placeholder="Conversion Boost", style=input_style)),
+                                field("Traffic Slider Label",
+                                      dcc.Input(id="cfg-traffic-label", type="text",
+                                                placeholder="SEO Traffic Growth", style=input_style)),
+                            ]
+                        ),
+                        html.Hr(style={"border": "none", "borderTop": f"1px solid {BORDER}", "margin": "0"}),
+                        html.Div("Calculator Mode",
+                                 style={"fontSize": "12px", "fontWeight": "700", "color": WHITE}),
+                        html.Div(
+                            style={"display": "flex", "alignItems": "flex-start", "gap": "12px",
+                                   "background": BG_INPUT, "border": f"1px solid {BORDER}",
+                                   "borderRadius": "8px", "padding": "14px 16px"},
+                            children=[
+                                dcc.Checklist(
+                                    id="cfg-additional-sales-mode",
+                                    options=[{"value": "enabled"}],
+                                    value=[],
+                                    style={"margin": "1px 0 0 0"},
+                                    inputStyle={"accentColor": RED_MAIN, "width": "15px",
+                                               "height": "15px", "cursor": "pointer"},
+                                ),
+                                html.Div([
+                                    html.Div("Additional Sales Per Year Mode",
+                                             style={"fontSize": "13px", "fontWeight": "600",
+                                                    "color": WHITE, "marginBottom": "3px"}),
+                                    html.Div(
+                                        "When enabled, the first slider represents incremental sales "
+                                        "directly. Conversion and traffic boosts are not applied to "
+                                        "the units calculation.",
+                                        style={"fontSize": "11px", "color": TEXT_MUTE,
+                                               "lineHeight": "1.5"}
+                                    )
+                                ])
+                            ]
+                        ),
                         html.Div(
                             style={"display": "flex", "justifyContent": "space-between",
                                    "alignItems": "center", "marginTop": "0.25rem"},
