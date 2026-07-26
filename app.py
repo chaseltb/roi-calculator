@@ -6,34 +6,31 @@ import dash
 from dash import dcc, html, Input, Output, State, callback, ctx
 import plotly.graph_objects as go
 
-# ── Brand Colors ──────────────────────────────────────────────────────────────
-BG_PAGE   = "#070101"   # near-black, slight red tint
-BG_CARD   = "#130202"   # dark card background
-BG_INPUT  = "#0c0101"   # input fields
-BORDER    = "#2e0805"   # subtle border
-BORDER_HI = "#5a1208"   # highlighted border
-RED_MAIN  = "#ff3428"   # vibrant red
-RED_SEC   = "#be0a00"   # deep red
-RED_GLOW  = "#ff3428"
-WHITE     = "#ffffff"
-TEXT_HI   = "#ffffff"
-TEXT_MID  = "#c98080"   # mid-contrast label
-TEXT_MUTE = "#7a4848"   # muted label
-GREEN     = "#4ade80"   # bright green for ROI
-GREEN_DIM = "rgba(74, 222, 128, 0.08)"
-
 DEFAULT_CONFIG = {
-    "product_name": "Etherea Website Platform",
+    "product_name": "Website Package from Etherea Labs",
     "timeline_months": 12,
     "tiers": [
         {"name": "Starter Package",    "cost": 809,  "limit": 100},
         {"name": "Growth Package",     "cost": 1237, "limit": 500},
         {"name": "Enterprise Package", "cost": 5000, "limit": 999999}
-    ]
+    ],
+    "colors": {
+        "bg_page":   "#070101",   # near-black, slight red tint
+        "bg_card":   "#130202",   # dark card background
+        "bg_input":  "#0c0101",   # input fields
+        "border":    "#2e0805",   # subtle border
+        "border_hi": "#5a1208",   # highlighted border
+        "red_main":  "#ff3428",   # vibrant accent
+        "red_sec":   "#be0a00",   # deep accent
+        "red_glow":  "#ff3428",
+        "white":     "#ffffff",
+        "text_hi":   "#ffffff",
+        "text_mid":  "#c98080",   # mid-contrast label
+        "text_mute": "#7a4848",   # muted label
+        "green":     "#4ade80",   # bright accent for ROI
+        "green_dim": "rgba(74, 222, 128, 0.08)"
+    }
 }
-
-CONFIGS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "configs")
-
 
 def load_config(path):
     """Load a settings JSON file and merge it over DEFAULT_CONFIG.
@@ -45,6 +42,26 @@ def load_config(path):
     cfg = {**DEFAULT_CONFIG, **overrides}
     cfg["tiers"] = overrides.get("tiers", DEFAULT_CONFIG["tiers"])
     return cfg
+
+CONFIGS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "configs")
+CONFIG_FILE = os.environ.get("ROI_CONFIG_FILE")
+INITIAL_CONFIG = load_config(CONFIG_FILE) if CONFIG_FILE else DEFAULT_CONFIG
+
+# ── Brand Colors ──────────────────────────────────────────────────────────────
+BG_PAGE   = INITIAL_CONFIG["colors"]["bg_page"]
+BG_CARD   = INITIAL_CONFIG["colors"]["bg_card"]
+BG_INPUT  = INITIAL_CONFIG["colors"]["bg_input"]
+BORDER    = INITIAL_CONFIG["colors"]["border"]
+BORDER_HI = INITIAL_CONFIG["colors"]["border_hi"]
+RED_MAIN  = INITIAL_CONFIG["colors"]["red_main"]
+RED_SEC   = INITIAL_CONFIG["colors"]["red_sec"]
+RED_GLOW  = INITIAL_CONFIG["colors"]["red_glow"]
+WHITE     = INITIAL_CONFIG["colors"]["white"]
+TEXT_HI   = INITIAL_CONFIG["colors"]["text_hi"]
+TEXT_MID  = INITIAL_CONFIG["colors"]["text_mid"]
+TEXT_MUTE = INITIAL_CONFIG["colors"]["text_mute"]
+GREEN     = INITIAL_CONFIG["colors"]["green"]
+GREEN_DIM = INITIAL_CONFIG["colors"]["green_dim"]
 
 
 def load_config_by_slug(slug):
@@ -65,8 +82,6 @@ def load_config_by_slug(slug):
         return None
 
 
-CONFIG_FILE = os.environ.get("ROI_CONFIG_FILE")
-INITIAL_CONFIG = load_config(CONFIG_FILE) if CONFIG_FILE else DEFAULT_CONFIG
 
 app = dash.Dash(
     __name__,
