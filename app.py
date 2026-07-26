@@ -14,6 +14,12 @@ DEFAULT_CONFIG = {
         {"name": "Growth Package",     "cost": 1237, "limit": 500},
         {"name": "Enterprise Package", "cost": 5000, "limit": 999999}
     ],
+    "brand": {
+        "name": "Etherea Labs",
+        "app_title": "Etherea Labs ROI Calculator",
+        "initials": "EL",
+        "site": "https://etherealabs.co/",
+    },
     "colors": {
         "bg_page":   "#070101",   # near-black, slight red tint
         "bg_card":   "#130202",   # dark card background
@@ -41,6 +47,8 @@ def load_config(path):
         overrides = json.load(f)
     cfg = {**DEFAULT_CONFIG, **overrides}
     cfg["tiers"] = overrides.get("tiers", DEFAULT_CONFIG["tiers"])
+    cfg["brand"] = {**DEFAULT_CONFIG["brand"], **overrides.get("brand", {})}
+    cfg["colors"] = {**DEFAULT_CONFIG["colors"], **overrides.get("colors", {})}
     return cfg
 
 CONFIGS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "configs")
@@ -62,6 +70,11 @@ TEXT_MID  = INITIAL_CONFIG["colors"]["text_mid"]
 TEXT_MUTE = INITIAL_CONFIG["colors"]["text_mute"]
 GREEN     = INITIAL_CONFIG["colors"]["green"]
 GREEN_DIM = INITIAL_CONFIG["colors"]["green_dim"]
+
+BRAND_NAME = INITIAL_CONFIG["brand"]["name"]
+APP_TITLE = INITIAL_CONFIG["brand"]["app_title"]
+BRAND_INITIALS = INITIAL_CONFIG["brand"]["initials"]
+BRAND_SITE = INITIAL_CONFIG["brand"]["site"]
 
 
 def load_config_by_slug(slug):
@@ -86,7 +99,7 @@ def load_config_by_slug(slug):
 app = dash.Dash(
     __name__,
     suppress_callback_exceptions=True,
-    title="Etherea Labs — ROI Calculator",
+    title=APP_TITLE,
     meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
 )
 server = app.server  # exposed for WSGI servers, e.g. `gunicorn app:server`
@@ -110,8 +123,7 @@ def slider_row(label, slider_id, val_id, min_v, max_v, step_v, default_v):
             html.Div(
                 style={"display": "flex", "justifyContent": "space-between", "alignItems": "baseline"},
                 children=[
-                    html.Span(label, style={"fontSize": "12px", "fontWeight": "600",
-                                            "letterSpacing": "0.04em", "color": TEXT_MID,
+                    html.Span(label, style={"fontSize": "12px", "fontWeight": "600", "letterSpacing": "0.04em", "color": TEXT_MID,
                                             "textTransform": "uppercase"}),
                     html.Span(id=val_id, style={"fontSize": "16px", "fontWeight": "800", "color": WHITE})
                 ]
@@ -136,21 +148,20 @@ def nav_bar(current_path, embed=False):
     is_config = current_path == "/config"
     return html.Div(
         style={"display": "flex", "justifyContent": "space-between", "alignItems": "center",
-               "padding": "1.1rem 2rem", "borderBottom": f"1px solid {BORDER}",
-               "marginBottom": "0"},
+               "padding": "1.1rem 2rem", "borderBottom": f"1px solid {BORDER}", "marginBottom": "0"},
         children=[
             html.Div(
                 style={"display": "flex", "alignItems": "center", "gap": "10px"},
                 children=[
                     html.Div(
-                        "E",
+                        BRAND_INITIALS,
                         style={"width": "30px", "height": "30px", "borderRadius": "7px",
                                "background": f"linear-gradient(135deg, {RED_MAIN} 0%, {RED_SEC} 100%)",
                                "display": "flex", "alignItems": "center", "justifyContent": "center",
                                "fontSize": "15px", "fontWeight": "800", "color": WHITE,
                                "flexShrink": "0"}
                     ),
-                    html.Span("Etherea Labs",
+                    html.Span(BRAND_NAME,
                               style={"fontSize": "14px", "fontWeight": "700",
                                      "letterSpacing": "-0.01em", "color": WHITE})
                 ]
@@ -776,7 +787,7 @@ app.index_string = f"""<!DOCTYPE html>
 
 # Allow this app to be framed by other sites (needed to embed it as an
 # <iframe>). Restrict via ROI_FRAME_ANCESTORS in production, e.g.
-# "https://etherealabs.com https://client-site.com" — defaults to "*" for demos.
+# "https://brand-site.com https://client-site.com" — defaults to "*" for demos.
 @app.server.after_request
 def _allow_embedding(response):
     response.headers.pop("X-Frame-Options", None)
@@ -786,4 +797,4 @@ def _allow_embedding(response):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=int(os.environ.get("ROI_PORT", 4006)))
+    app.run(debug=False, port=int(os.environ.get("ROI_PORT", 4006)))
