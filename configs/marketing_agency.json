@@ -2,8 +2,30 @@
   "product_name": "Growth Marketing Retainer",
   "timeline_months": 6,
   "tiers": [
-    { "name": "Basic Retainer",    "cost": 1500, "limit": 50 },
-    { "name": "Pro Retainer",      "cost": 3500, "limit": 250 },
-    { "name": "Agency Partnership","cost": 9000, "limit": 999999 }
-  ]
+    { "name": "Basic Retainer",     "cost": 1500, "limit": 50 },
+    { "name": "Pro Retainer",       "cost": 3500, "limit": 250 },
+    { "name": "Agency Partnership", "cost": 9000, "limit": 999999 }
+  ],
+  "brand": {
+    "name":      "Apex Marketing",
+    "app_title": "Apex Marketing ROI Calculator",
+    "initials":  "AM",
+    "site":      "https://apexmarketing.co/"
+  },
+  "colors": {
+    "bg_page":   "#020409",
+    "bg_card":   "#050b18",
+    "bg_input":  "#030710",
+    "border":    "#0e1f3f",
+    "border_hi": "#1a3d7a",
+    "red_main":  "#3b82f6",
+    "red_sec":   "#1d4ed8",
+    "red_glow":  "#3b82f6",
+    "white":     "#ffffff",
+    "text_hi":   "#ffffff",
+    "text_mid":  "#7aa3d4",
+    "text_mute": "#3d5f88",
+    "green":     "#4ade80",
+    "green_dim": "rgba(74, 222, 128, 0.08)"
+  }
 }
