@@ -27,5 +27,12 @@
     "text_mute": "#7a4848",
     "green":     "#4ade80",
     "green_dim": "rgba(74, 222, 128, 0.08)"
-  }
+  },
+  "sliders": {
+    "units_label":      "Additional Sales Per Year",
+    "profit_label":     "Profit Per Sale",
+    "conversion_label": "Conversion Boost",
+    "traffic_label":    "SEO Traffic Growth"
+  },
+  "additional_sales_mode": true
 }

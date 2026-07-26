@@ -202,6 +202,7 @@ def populate_config(pathname, store):
     Output("profit-label", "children"),
     Output("conversion-label", "children"),
     Output("traffic-label", "children"),
+    Output("projected-gains-container", "style"),
     Input("units-slider", "value"),
     Input("profit-slider", "value"),
     Input("conversion-slider", "value"),
@@ -211,7 +212,7 @@ def populate_config(pathname, store):
 )
 def update_calculator(units_val, profit_val, conv_val, traffic_val, config_data, pathname):
     if pathname == "/config":
-        return [dash.no_update] * 16
+        return [dash.no_update] * 17
 
     cfg = config_data or DEFAULT_CONFIG
     timeline = cfg.get("timeline_months", 12)
@@ -332,7 +333,8 @@ def update_calculator(units_val, profit_val, conv_val, traffic_val, config_data,
         units_lbl,
         profit_lbl,
         conv_lbl,
-        traffic_lbl
+        traffic_lbl,
+        {"display": "none"} if additional_sales_mode else {}
     )
 
 # ── Index HTML ────────────────────────────────────────────────────────────────
