@@ -1,0 +1,9 @@
+{
+  "product_name": "",
+  "timeline_months": 3,
+  "tiers": [
+    { "name": "",   "cost": 1,  "limit": 1 },
+    { "name": "","cost": 1, "limit": 1 },
+    { "name": "","cost": 1, "limit": 1 }
+  ]
+}
